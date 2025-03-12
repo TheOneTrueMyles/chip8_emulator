@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace chip8_emulator
@@ -76,7 +73,7 @@ namespace chip8_emulator
 
             switch ((inst & 0xF000) >> 12)
             {
-                case 0:
+                case 0x0:
                     if (inst == 0x00E0)
                     {
                         // CLS
@@ -93,38 +90,122 @@ namespace chip8_emulator
                     }
                     break;
 
-                case 1:
+                case 0x1:
                     // JMP nnn
                     PC = nnn;
                     break;
 
-                case 2:
+                case 0x2:
                     // CALL nnn
                     Stack.Push(PC);
                     PC = nnn;
                     break;
 
-                case 3:
+                case 0x3:
                     // SE Vx, kk
                     if (V[x] == kk)
                         PC += 2;
                     break;
 
-                case 4:
+                case 0x4:
                     // SNE Vx, kk
                     if (V[x] != kk)
                         PC += 2;
                     break;
 
-                case 5:
+                case 0x5:
                     // SE Vx, Vy
                     if (V[x] == V[y])
                         PC += 2;
                     break;
 
-                case 6:
+                case 0x6:
                     // LD Vx, kk
                     V[x] = kk;
+                    break;
+
+                case 0x7:
+                    // ADD Vx, kk
+                    V[x] += kk;
+                    break;
+
+                case 0x8:
+                    switch (n)
+                    {
+                        case 0x0:
+                            // LD Vx, Vy
+                            V[x] = V[y];
+                            break;
+
+                        case 0x1:
+                            // OR Vx, Vy
+                            V[x] |= V[y];
+                            break;
+
+                        case 0x2:
+                            // AND Vx, Vy
+                            V[x] &= V[y];
+                            break;
+
+                        case 0x3:
+                            // XOR Vx, Vy
+                            V[x] ^= V[y];
+                            break;
+
+                        case 0x4:
+                            // ADD Vx, Vy
+                            // VF = carry
+                            V[x] += V[y];
+                            V[0xF] = (byte)(V[x] < V[y] ? 1 : 0);
+                            break;
+
+                        case 0x5:
+                            // SUB Vx, Vy
+                            // VF = NOT borrow
+                            V[0xF] = (byte)(V[x] > V[y] ? 1 : 0);
+                            V[x] -= V[y];
+                            break;
+
+                        case 0x6:
+                            // SHR Vx
+                            // VF = shifted out bit
+                            V[0xF] = (byte)(V[x] & 0x1);
+                            V[x] >>= 1;
+                            break;
+
+                        case 0x7:
+                            // SUBN Vx, Vy
+                            // VF = NOT borrow
+                            V[0xF] = (byte)(V[y] > V[x] ? 1 : 0);
+                            V[x] = (byte)(V[y] - V[x]);
+                            break;
+
+                        case 0xE:
+                            // SHL Vx
+                            // VF = shifted out bit
+                            V[0xF] = (byte)((V[x] & 0x80) >> 7);
+                            V[x] <<= 1;
+                            break;
+
+                        default:
+                            throw new InvalidOperationException($"Opcode not supported: 0x{inst:X4}");
+                    }
+                    break;
+
+                case 0x9:
+                    // SNE Vx, Vy
+                    if (V[x] != V[y])
+                        PC += 2;
+                    break;
+
+                case 0xA:
+                    // LD I, nnn
+                    I = nnn;
+                    break;
+
+                case 0xB:
+                    // JP V0, nnn
+                    PC = (ushort)(nnn + V[0]);
                     break;
 
                 default:
