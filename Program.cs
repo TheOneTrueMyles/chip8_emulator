@@ -15,10 +15,17 @@ namespace chip8_emulator
             ushort inst;
             cpu.LoadROM(@"heartmonitor/heart_monitor.ch8");
 
-            while (cpu.PC < CPU.RAM_SIZE)
+            while (true)
             {
-                inst = cpu.FetchInstruction();
-                //Console.WriteLine($"0x{inst:X4}");
+                try
+                {
+                    inst = cpu.FetchInstruction();
+                    cpu.ExecuteInstruction(inst);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
         }
     }
@@ -59,8 +66,74 @@ namespace chip8_emulator
             return inst;
         }
 
+        public void ExecuteInstruction(ushort inst)
+        {
+            ushort nnn = (ushort)(inst & 0xFFF);
+            byte n = (byte)(inst & 0xF);
+            byte x = (byte)((inst & 0x0F00) >> 8);
+            byte y = (byte)((inst & 0x00F0) >> 4);
+            byte kk = (byte)(inst & 0xFF);
+
+            switch ((inst & 0xF000) >> 12)
+            {
+                case 0:
+                    if (inst == 0x00E0)
+                    {
+                        // CLS
+                        Display = new byte[64 * 32];
+                    }
+                    else if (inst == 0x00EE)
+                    {
+                        // RET
+                        PC = Stack.Pop();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Opcode not supported: 0x{inst:X4}");
+                    }
+                    break;
+
+                case 1:
+                    // JMP nnn
+                    PC = nnn;
+                    break;
+
+                case 2:
+                    // CALL nnn
+                    Stack.Push(PC);
+                    PC = nnn;
+                    break;
+
+                case 3:
+                    // SE Vx, kk
+                    if (V[x] == kk)
+                        PC += 2;
+                    break;
+
+                case 4:
+                    // SNE Vx, kk
+                    if (V[x] != kk)
+                        PC += 2;
+                    break;
+
+                case 5:
+                    // SE Vx, Vy
+                    if (V[x] == V[y])
+                        PC += 2;
+                    break;
+
+                case 6:
+                    // LD Vx, kk
+                    V[x] = kk;
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Opcode not supported: 0x{inst:X4}");
+            }
+        }
+
         #region Debug Methods
-        
+
         public void PrintRAM()
         {
             for (int i = 0; i < RAM.Length; i++)
