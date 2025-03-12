@@ -12,17 +12,23 @@ namespace chip8_emulator
         static void Main(string[] args)
         {
             CPU cpu = new CPU();
+            ushort inst;
             cpu.LoadROM(@"heartmonitor/heart_monitor.ch8");
-            
-            Console.ReadKey();
+
+            while (cpu.PC < CPU.RAM_SIZE)
+            {
+                inst = cpu.FetchInstruction();
+                //Console.WriteLine($"0x{inst:X4}");
+            }
         }
     }
 
     public class CPU
     {
-        public static ushort START_ADDRESS = 0x0200;
+        public static readonly ushort START_ADDRESS = 0x0200;
+        public static readonly ushort RAM_SIZE = 4096;
         
-        public byte[] RAM = new byte[4096];
+        public byte[] RAM = new byte[RAM_SIZE];
         public byte[] Display = new byte[64 * 32];
         public byte[] V = new byte[16];
         public ushort I = 0;
@@ -33,7 +39,7 @@ namespace chip8_emulator
 
         public CPU()
         {
-            RAM = new byte[4096];
+            RAM = new byte[RAM_SIZE];
             PC = START_ADDRESS;
         }
 
@@ -44,6 +50,13 @@ namespace chip8_emulator
             {
                 RAM[START_ADDRESS + s.Position] = (byte) s.ReadByte();
             }
+        }
+
+        public ushort FetchInstruction()
+        {
+            ushort inst = (ushort)((RAM[PC] << 8) | RAM[PC+1]);
+            PC += 2;
+            return inst;
         }
 
         #region Debug Methods
