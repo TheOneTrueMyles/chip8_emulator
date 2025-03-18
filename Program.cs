@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace chip8_emulator
@@ -11,9 +12,11 @@ namespace chip8_emulator
             CPU cpu = new CPU();
             ushort inst;
             cpu.LoadROM(@"heartmonitor/heart_monitor.ch8");
+            Stopwatch cycle = new Stopwatch();
 
             while (true)
             {
+                cycle.Restart();
                 try
                 {
                     inst = cpu.FetchInstruction();
@@ -23,7 +26,14 @@ namespace chip8_emulator
                 {
                     Console.WriteLine(e.Message);
                 }
+
+                cpu.DrawDisplay();
+
+                while (cycle.ElapsedTicks < (TimeSpan.TicksPerSecond / 500)) { 
+                    // do nothing
+                }
             }
+
         }
     }
 
