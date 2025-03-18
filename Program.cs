@@ -40,11 +40,13 @@ namespace chip8_emulator
         public byte SoundTimer = 0;
         public byte DelayTimer = 0;
         public Stack<ushort> Stack = new Stack<ushort>();
+        public Random rnd;
 
         public CPU()
         {
             RAM = new byte[RAM_SIZE];
             PC = START_ADDRESS;
+            rnd = new Random();
         }
 
         public void LoadROM(string rom)
@@ -208,9 +210,54 @@ namespace chip8_emulator
                     PC = (ushort)(nnn + V[0]);
                     break;
 
+                case 0xC:
+                    // RND Vx, kk
+                    V[x] = (byte)(rnd.Next(0, 255) & kk);
+                    break;
+
+                case 0xD:
+                    // DRW Vx, Vy, n
+
+                    // Grab n-byte sprite from address I and draw at coordinate (Vx, Vy) 
+                    // Display is updated by XORing pixels, set VF if there's a collision
+                    V[0xF] = 0;
+                    for (byte i = 0; i < n; i++)
+                    {
+                        byte pixelRow = RAM[I + i];
+                        for (byte j = 0; j < 8; j++)
+                        {
+                            byte pixel = (byte)((pixelRow >> (7 - j)) & 0x1);
+                            byte row = (byte)(V[y] + i);
+                            byte column = (byte)(V[x] + j);
+                            byte oldPixel = Display[row * 64 + column];
+                            if (pixel == oldPixel) // collision
+                                V[0xF] = 1;
+                            Display[row * 64 + column] ^= pixel;
+                        }
+                    }
+                    //DrawDisplay();
+                    break;
+                    
                 default:
                     throw new InvalidOperationException($"Opcode not supported: 0x{inst:X4}");
             }
+        }
+
+        public void DrawDisplay()
+        {
+            Console.Clear();
+            Console.SetCursorPosition(0, 0);
+            string display = "";
+            for(var i = 0; i < 32; i++)
+            {
+                for (var j = 0; j < 64; j++)
+                {
+                    byte pixel = Display[i * 64 + j];
+                    display += pixel == 1 ? "*" : " ";
+                }
+                display += "\r\n";
+            }
+            Console.Write(display);
         }
 
         #region Debug Methods
